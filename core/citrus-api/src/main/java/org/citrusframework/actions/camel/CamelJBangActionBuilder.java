@@ -38,6 +38,11 @@ public interface CamelJBangActionBuilder<T extends TestAction, B extends CamelJB
     CamelIntegrationRunActionBuilder<?, ?> run(String name, String sourceCode);
 
     /**
+     * Executes custom command with Camel JBang.
+     */
+    CamelIntegrationCustomActionBuilder<?, ?> custom(String name);
+
+    /**
      * Verify that given Camel integration is running.
      */
     CamelIntegrationVerifyActionBuilder<?, ?> verify();
