@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static org.citrusframework.camel.dsl.CamelSupport.camel;
@@ -61,6 +62,7 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
 
     /** TODO */
     private final String pidName;
+    private final String cmdToExecute;
 
     /** Optional list of resource files to include */
     private final List<String> resourceFiles;
@@ -71,11 +73,11 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
     /** Camel Jbang command arguments */
     private final List<String> args;
 
-//    /** Environment variables set on the Camel JBang process */
-//    private final Map<String, String> envVars;
+    /** Environment variables set on the Camel JBang process */
+    private final Map<String, String> envVars;
 
-//    /** System properties set on the Camel JBang process */
-//    private final Map<String, String> systemProperties;
+    /** System properties set on the Camel JBang process */
+    private final Map<String, String> systemProperties;
 
     private final boolean autoRemoveResources;
 
@@ -94,8 +96,9 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
         this.sourceCode = builder.sourceCode;
         this.args = builder.args;
         this.pidName = builder.pidName;
-//        this.envVars = builder.envVars;
-//        this.systemProperties = builder.systemProperties;
+        this.cmdToExecute = builder.cmdToExecute;
+        this.envVars = builder.envVars;
+        this.systemProperties = builder.systemProperties;
         this.autoRemoveResources = builder.autoRemoveResources;
         this.waitForRunningState = builder.waitForRunningState;
         this.dumpIntegrationOutput = builder.dumpIntegrationOutput;
@@ -124,12 +127,11 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
             }
 
             camelJBang().dumpIntegrationOutput(dumpIntegrationOutput);
-//            camelJBang().withEnvs(context.resolveDynamicValuesInMap(envVars));
-//            camelJBang().withSystemProperties(context.resolveDynamicValuesInMap(systemProperties));
-            camelJBang().workingDir(Paths.get("/home/jondruse/git/community/camel-forage/integrationTests/jdbc/tmp/"));
+            camelJBang().withEnvs(context.resolveDynamicValuesInMap(envVars));
+            camelJBang().withSystemProperties(context.resolveDynamicValuesInMap(systemProperties));
+            camelJBang().workingDir(Paths.get(sourceCode));
 
-            ProcessAndOutput pao = camelJBang().custom(names, integrationToRun.getFileName().toString(), resourceFiles,
-                    context.resolveDynamicValuesInList(args).toArray(String[]::new));
+            ProcessAndOutput pao = camelJBang().custom(cmdToExecute, sourceCode, names, resourceFiles, context.resolveDynamicValuesInList(args).toArray(String[]::new));
 
             verifyProcessIsAlive(pao, names.get(0));
 
@@ -203,6 +205,7 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
 
         private String sourceCode;
         private String pidName;
+        private String cmdToExecute;
         private List<String> integrationNames = Collections.emptyList();
         private Resource integrationResource;
         private final List<String> resourceFiles = new ArrayList<>();
@@ -235,6 +238,12 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
         @Override
         public Builder pidName(String pidName) {
             this.pidName = pidName;
+            return this;
+        }
+
+        @Override
+        public Builder cmdToExecute(String cmdToExecute) {
+            this.cmdToExecute = cmdToExecute;
             return this;
         }
 
@@ -281,42 +290,42 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
             this.args.addAll(Arrays.asList(args));
             return this;
         }
-//
-//        @Override
-//        public Builder withEnv(String key, String value) {
-//            this.envVars.put(key, value);
-//            return this;
-//        }
-//
-//        @Override
-//        public Builder withEnvs(Map<String, String> envVars) {
-//            this.envVars.putAll(envVars);
-//            return this;
-//        }
-//
-//        @Override
-//        public Builder withEnvs(Resource envVarsFile) {
-//            this.envVarsFile = envVarsFile;
-//            return this;
-//        }
 
-//        @Override
-//        public Builder withSystemProperty(String key, String value) {
-//            this.systemProperties.put(key, value);
-//            return this;
-//        }
-//
-//        @Override
-//        public Builder withSystemProperties(Map<String, String> systemProperties) {
-//            this.systemProperties.putAll(systemProperties);
-//            return this;
-//        }
-//
-//        @Override
-//        public Builder withSystemProperties(Resource systemPropertiesFile) {
-//            this.systemPropertiesFile = systemPropertiesFile;
-//            return this;
-//        }
+        @Override
+        public Builder withEnv(String key, String value) {
+            this.envVars.put(key, value);
+            return this;
+        }
+
+        @Override
+        public Builder withEnvs(Map<String, String> envVars) {
+            this.envVars.putAll(envVars);
+            return this;
+        }
+
+        @Override
+        public Builder withEnvs(Resource envVarsFile) {
+            this.envVarsFile = envVarsFile;
+            return this;
+        }
+
+        @Override
+        public Builder withSystemProperty(String key, String value) {
+            this.systemProperties.put(key, value);
+            return this;
+        }
+
+        @Override
+        public Builder withSystemProperties(Map<String, String> systemProperties) {
+            this.systemProperties.putAll(systemProperties);
+            return this;
+        }
+
+        @Override
+        public Builder withSystemProperties(Resource systemPropertiesFile) {
+            this.systemPropertiesFile = systemPropertiesFile;
+            return this;
+        }
 
         @Override
         public Builder dumpIntegrationOutput(boolean enabled) {
@@ -324,11 +333,11 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
             return this;
         }
 
-//        @Override
-//        public Builder autoRemove(boolean enabled) {
-//            this.autoRemoveResources = enabled;
-//            return this;
-//        }
+        @Override
+        public Builder autoRemove(boolean enabled) {
+            this.autoRemoveResources = enabled;
+            return this;
+        }
 
         @Override
         public Builder waitForRunningState(boolean enabled) {
@@ -338,25 +347,25 @@ import static org.citrusframework.camel.dsl.CamelSupport.camel;
 
         @Override
         public CamelCustomIntegrationAction doBuild() {
-//            if (systemPropertiesFile != null) {
-//                Properties props = new Properties();
-//                try {
-//                    props.load(systemPropertiesFile.getInputStream());
-//                    props.forEach((k, v) -> withSystemProperty(k.toString(), v.toString()));
-//                } catch (IOException e) {
-//                    throw new CitrusRuntimeException("Failed to read properties file", e);
-//                }
-//            }
-//
-//            if (envVarsFile != null) {
-//                Properties props = new Properties();
-//                try {
-//                    props.load(envVarsFile.getInputStream());
-//                    props.forEach((k, v) -> withEnv(k.toString(), v.toString()));
-//                } catch (IOException e) {
-//                    throw new CitrusRuntimeException("Failed to read properties file", e);
-//                }
-//            }
+            if (systemPropertiesFile != null) {
+                Properties props = new Properties();
+                try {
+                    props.load(systemPropertiesFile.getInputStream());
+                    props.forEach((k, v) -> withSystemProperty(k.toString(), v.toString()));
+                } catch (IOException e) {
+                    throw new CitrusRuntimeException("Failed to read properties file", e);
+                }
+            }
+
+            if (envVarsFile != null) {
+                Properties props = new Properties();
+                try {
+                    props.load(envVarsFile.getInputStream());
+                    props.forEach((k, v) -> withEnv(k.toString(), v.toString()));
+                } catch (IOException e) {
+                    throw new CitrusRuntimeException("Failed to read properties file", e);
+                }
+            }
 
             return new CamelCustomIntegrationAction(this);
         }

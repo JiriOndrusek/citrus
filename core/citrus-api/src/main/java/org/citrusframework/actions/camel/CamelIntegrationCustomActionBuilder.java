@@ -41,6 +41,11 @@ public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B ext
     B pidName(String pidName);
 
     /**
+     * TODO
+     */
+    B cmdToExecute(String cmdToExecute);
+
+    /**
      * Add resource file to the integration run.
      */
     B addResource(Resource resource);
@@ -75,39 +80,39 @@ public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B ext
      */
     B withArgs(String... args);
 
-//    /**
-//     * Adds an environment variable.
-//     */
-//    B withEnv(String key, String value);
-//
-//    /**
-//     * Adds environment variables.
-//     */
-//    B withEnvs(Map<String, String> envVars);
-//
-//    /**
-//     * Adds environment variables from given file resource.
-//     */
-//    B withEnvs(Resource envVarsFile);
-//
-//    /**
-//     * Adds a system properties.
-//     */
-//    B withSystemProperty(String key, String value);
-//
-//    /**
-//     * Adds system properties.
-//     */
-//    B withSystemProperties(Map<String, String> systemProperties);
-//
-//    /**
-//     * Adds system properties from given file resource.
-//     */
-//    B withSystemProperties(Resource systemPropertiesFile);
+    /**
+     * Adds an environment variable.
+     */
+    B withEnv(String key, String value);
+
+    /**
+     * Adds environment variables.
+     */
+    B withEnvs(Map<String, String> envVars);
+
+    /**
+     * Adds environment variables from given file resource.
+     */
+    B withEnvs(Resource envVarsFile);
+
+    /**
+     * Adds a system properties.
+     */
+    B withSystemProperty(String key, String value);
+
+    /**
+     * Adds system properties.
+     */
+    B withSystemProperties(Map<String, String> systemProperties);
+
+    /**
+     * Adds system properties from given file resource.
+     */
+    B withSystemProperties(Resource systemPropertiesFile);
 
     B dumpIntegrationOutput(boolean enabled);
 
-//    B autoRemove(boolean enabled);
+    B autoRemove(boolean enabled);
 
     B waitForRunningState(boolean enabled);
 }

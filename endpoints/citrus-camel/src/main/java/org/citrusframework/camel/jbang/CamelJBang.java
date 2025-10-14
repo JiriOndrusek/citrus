@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -158,7 +159,7 @@ public class CamelJBang {
     /**
      * Execute custom integration with JBang Camel app.
      */
-    public ProcessAndOutput custom(List<String> names, String file, List<String> resources, String... args) {
+    public ProcessAndOutput custom(String cmd, String workDir, List<String> names, List<String> files, String... args) {
         List<String> runArgs = new ArrayList<>();
         runArgs.addAll(names);
 
@@ -168,22 +169,24 @@ public class CamelJBang {
         }
 
 
-        runArgs.addAll(resources);
+        runArgs.addAll(files);
 
         runArgs.addAll(Arrays.asList(args));
 
+        app.withSystemProperty("camel.jbang.version", "4.16.0-SNAPSHOT");
+
         if (dumpIntegrationOutput) {
-            Path workDir = CamelJBangSettings.getWorkDir();
-            File outputFile = workDir.resolve(String.format("i-%s-output.txt", names.get(0))).toFile();
+            Path workDirP = Paths.get(workDir);
+            File outputFile = workDirP.resolve(String.format("i-%s-output.txt", names.get(0))).toFile();
 
             if (Stream.of(args).noneMatch(it -> it.contains("--logging-color"))) {
                 // disable logging colors when writing logs to file
                 runArgs.add("--logging-color=false");
             }
 
-            return app.runAsync("run", outputFile, runArgs);
+            return app.runAsync(cmd, outputFile, runArgs);
         } else {
-            return app.runAsync("run", runArgs);
+            return app.runAsync(cmd, runArgs);
         }
     }
 

@@ -97,6 +97,12 @@ public class CamelDataFormatClauseSupport<T extends InlineProcessDefinition> ext
     }
 
     @Override
+    public T hl7(Object parser) {
+        //todo
+        return null;
+    }
+
+    @Override
     public T json(String library) {
         return json(Arrays.stream(JsonLibrary.values())
                 .filter(lib -> lib.getDataFormatName().equalsIgnoreCase(library))
@@ -151,6 +157,18 @@ public class CamelDataFormatClauseSupport<T extends InlineProcessDefinition> ext
                 .filter(lib -> lib.getDataFormatName().equalsIgnoreCase(library))
                 .findFirst()
                 .orElse(ProtobufLibrary.valueOf(library)), unmarshalType, schemaResolver);
+    }
+
+    @Override
+    public T tidyMarkup(Class<?> dataObjectType) {
+        //todo
+        return null;
+    }
+
+    @Override
+    public T tidyMarkup() {
+        //todo
+        return null;
     }
 
     @Override
