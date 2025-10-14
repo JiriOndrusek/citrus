@@ -17,7 +17,6 @@
 package org.citrusframework.camel.actions;
 
 import org.citrusframework.actions.camel.CamelIntegrationCustomActionBuilder;
-import org.citrusframework.actions.camel.CamelIntegrationRunActionBuilder;
 import org.citrusframework.camel.jbang.CamelJBangSettings;
 import org.citrusframework.context.TestContext;
 import org.citrusframework.exceptions.CitrusRuntimeException;
@@ -34,29 +33,34 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static org.citrusframework.camel.dsl.CamelSupport.camel;
 
 /**
  * Runs given Camel integration with Camel JBang tooling.
  */
-public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
+    public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
 
     /** Logger */
     private static final Logger logger = LoggerFactory.getLogger(CamelCustomIntegrationAction.class);
 
     /** Name of Camel integration */
-    private final String integrationName;
+    private final List<String> integrationNames;
 
     /** Camel integration resource */
     private final Resource integrationResource;
+
+    /** TODO */
+    private final String pidName;
 
     /** Optional list of resource files to include */
     private final List<String> resourceFiles;
@@ -73,6 +77,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
 //    /** System properties set on the Camel JBang process */
 //    private final Map<String, String> systemProperties;
 
+    private final boolean autoRemoveResources;
+
     private final boolean waitForRunningState;
     private final boolean dumpIntegrationOutput;
 
@@ -82,30 +88,31 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
     public CamelCustomIntegrationAction(Builder builder) {
         super("run-integration", builder);
 
-        this.integrationName = builder.integrationName;
+        this.integrationNames = builder.integrationNames;
         this.integrationResource = builder.integrationResource;
         this.resourceFiles = builder.resourceFiles;
         this.sourceCode = builder.sourceCode;
         this.args = builder.args;
+        this.pidName = builder.pidName;
 //        this.envVars = builder.envVars;
 //        this.systemProperties = builder.systemProperties;
-//        this.autoRemoveResources = builder.autoRemoveResources;
+        this.autoRemoveResources = builder.autoRemoveResources;
         this.waitForRunningState = builder.waitForRunningState;
         this.dumpIntegrationOutput = builder.dumpIntegrationOutput;
     }
 
     @Override
     public void doExecute(TestContext context) {
-        String name = context.replaceDynamicContentInString(integrationName);
+        List<String> names = integrationNames.stream().map(n -> context.replaceDynamicContentInString(n)).collect(Collectors.toList());
 
         try {
-            logger.info("Starting Camel integration '%s' ...".formatted(name));
+            logger.info("Starting Camel integration '%s' ...".formatted(names.get(0)));
 
             Path integrationToRun;
             if (StringUtils.hasText(sourceCode)) {
                 Path workDir = CamelJBangSettings.getWorkDir();
                 Files.createDirectories(workDir);
-                integrationToRun = workDir.resolve(String.format("i-%s.%s", name, getFileExt(sourceCode)));
+                integrationToRun = workDir.resolve(String.format("i-%s.%s", names.get(0), getFileExt(sourceCode)));
                 Files.writeString(integrationToRun, sourceCode,
                         StandardOpenOption.WRITE,
                         StandardOpenOption.CREATE,
@@ -119,32 +126,33 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
             camelJBang().dumpIntegrationOutput(dumpIntegrationOutput);
 //            camelJBang().withEnvs(context.resolveDynamicValuesInMap(envVars));
 //            camelJBang().withSystemProperties(context.resolveDynamicValuesInMap(systemProperties));
-            camelJBang().workingDir(integrationToRun.toAbsolutePath().getParent());
+            camelJBang().workingDir(Paths.get("/home/jondruse/git/community/camel-forage/integrationTests/jdbc/tmp/"));
 
-            ProcessAndOutput pao = camelJBang().custom(name, integrationToRun.getFileName().toString(), resourceFiles,
+            ProcessAndOutput pao = camelJBang().custom(names, integrationToRun.getFileName().toString(), resourceFiles,
                     context.resolveDynamicValuesInList(args).toArray(String[]::new));
 
-            verifyProcessIsAlive(pao, name);
+            verifyProcessIsAlive(pao, names.get(0));
 
             Long pid = pao.getProcessId();
 
-            context.setVariable("%s:pid".formatted(name), pid);
-            context.setVariable("%s:process:%d".formatted(name, pid), pao);
+            context.setVariable("%s:pid".formatted(pidName), pid);
+            context.setVariable("%s:process:%d".formatted(pidName, pid), pao);
 
-            logger.info("Started Camel integration '%s' (%s)".formatted(name, pid));
+            logger.info("Started Camel integration '%s' (%s)".formatted(names.get(0), pid));
 
-//            if (autoRemoveResources) {
-//                context.doFinally(camel()
-//                        .jbang()
-//                        .stop()
-//                        .integration(name));
-//            }
+            if (autoRemoveResources) {
+                context.doFinally(camel()
+                        .jbang()
+                        .stop()
+                        .integration(pidName));
+            }
 
-            logger.info("Waiting for the Camel integration '%s' (%s) to be running ...".formatted(name, pid));
+            logger.info("Waiting for the Camel integration '%s' (%s) to be running ...".formatted(names.get(0), pid));
 
             if (waitForRunningState) {
                 new CamelVerifyIntegrationAction.Builder()
-                        .integrationName(name)
+//                        .integrationName(names.get(0))
+                        .integrationName(pidName)
                         .isRunning()
                         .build()
                         .execute(context);
@@ -183,8 +191,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         }
     }
 
-    public String getIntegrationName() {
-        return integrationName;
+    public List<String> getIntegrationNames() {
+        return integrationNames;
     }
 
     /**
@@ -194,7 +202,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
             implements CamelIntegrationCustomActionBuilder<CamelCustomIntegrationAction, Builder> {
 
         private String sourceCode;
-        private String integrationName = "route";
+        private String pidName;
+        private List<String> integrationNames = Collections.emptyList();
         private Resource integrationResource;
         private final List<String> resourceFiles = new ArrayList<>();
 
@@ -217,9 +226,15 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         @Override
         public Builder integration(Resource resource) {
             this.integrationResource = resource;
-            if (integrationName == null) {
-                this.integrationName = FileUtils.getBaseName(FileUtils.getFileName(resource.getLocation()));
+            if (integrationNames.isEmpty()) {
+                this.integrationNames = Collections.singletonList(FileUtils.getBaseName(FileUtils.getFileName(resource.getLocation())));
             }
+            return this;
+        }
+
+        @Override
+        public Builder pidName(String pidName) {
+            this.pidName = pidName;
             return this;
         }
 
@@ -243,8 +258,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
 //        }
 
         @Override
-        public Builder integrationName(String name) {
-            this.integrationName = name;
+        public Builder integrationNames(List<String> names) {
+            this.integrationNames = names;
             return this;
         }
 

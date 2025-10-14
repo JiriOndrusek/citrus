@@ -21,6 +21,8 @@ import org.citrusframework.spi.ReferenceResolver;
 import org.citrusframework.spi.ReferenceResolverAware;
 import org.citrusframework.util.ObjectHelper;
 
+import java.util.List;
+
 /**
  * Action builder.
  */
@@ -67,9 +69,9 @@ public class CamelJBangActionBuilder extends AbstractReferenceResolverAwareTestA
     }
 
     @Override
-    public CamelCustomIntegrationAction.Builder custom(String name) {
+    public CamelCustomIntegrationAction.Builder custom(List<String> names) {
         CamelCustomIntegrationAction.Builder builder = new CamelCustomIntegrationAction.Builder()
-                .integrationName(name);
+                .integrationNames(names);
 
         this.delegate = builder;
         return builder;

@@ -19,6 +19,7 @@ package org.citrusframework.actions.camel;
 import org.citrusframework.TestAction;
 import org.citrusframework.spi.Resource;
 
+import java.util.List;
 import java.util.Map;
 
 public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B extends CamelIntegrationCustomActionBuilder<T, B>>
@@ -33,6 +34,11 @@ public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B ext
      * Runs given Camel integration resource.
      */
     B integration(Resource resource);
+
+    /**
+     * pidId
+     */
+    B pidName(String pidName);
 
     /**
      * Add resource file to the integration run.
@@ -52,7 +58,7 @@ public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B ext
     /**
      * Sets the integration name.
      */
-    B integrationName(String name);
+    B integrationNames(List<String> name);
 
     /**
      * Adds a command argument.

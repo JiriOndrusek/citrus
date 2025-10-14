@@ -158,24 +158,23 @@ public class CamelJBang {
     /**
      * Execute custom integration with JBang Camel app.
      */
-    public ProcessAndOutput custom(String name, String file, List<String> resources, String... args) {
+    public ProcessAndOutput custom(List<String> names, String file, List<String> resources, String... args) {
         List<String> runArgs = new ArrayList<>();
-        runArgs.add("--name");
-        runArgs.add(name);
+        runArgs.addAll(names);
 
         if (CamelJBangSettings.getKameletsLocalDir() != null) {
             runArgs.add("--local-kamelet-dir");
             runArgs.add(CamelJBangSettings.getKameletsLocalDir().toString());
         }
 
-        runArgs.addAll(Arrays.asList(args));
 
-        runArgs.add(file);
         runArgs.addAll(resources);
+
+        runArgs.addAll(Arrays.asList(args));
 
         if (dumpIntegrationOutput) {
             Path workDir = CamelJBangSettings.getWorkDir();
-            File outputFile = workDir.resolve(String.format("i-%s-output.txt", name)).toFile();
+            File outputFile = workDir.resolve(String.format("i-%s-output.txt", names.get(0))).toFile();
 
             if (Stream.of(args).noneMatch(it -> it.contains("--logging-color"))) {
                 // disable logging colors when writing logs to file
@@ -244,6 +243,9 @@ public class CamelJBang {
             //on Fedora system, the first line contains some timestamps and not property names, in this case, skip it
             if(line != null && !line.trim().matches("^\\w+(\\s+\\w+)*$")) {
                 line = reader.readLine();
+                if (line == null) {
+                    return properties;
+                }
             }
 
             List<String> names = new ArrayList<>(Arrays.asList(line.trim().split("\\s+")));
