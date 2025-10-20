@@ -67,6 +67,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
     /** System properties set on the Camel JBang process */
     private final Map<String, String> systemProperties;
 
+    private final Object reuseProcess;
+
     private final boolean autoRemoveResources;
 
     private final boolean waitForRunningState;
@@ -85,6 +87,7 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         this.processName = builder.processName;
         this.envVars = builder.envVars;
         this.systemProperties = builder.systemProperties;
+        this.reuseProcess = builder.reuseProcess;
         this.autoRemoveResources = builder.autoRemoveResources;
         this.waitForRunningState = builder.waitForRunningState;
         this.dumpIntegrationOutput = builder.dumpIntegrationOutput;
@@ -118,19 +121,27 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         camelJBang().withSystemProperties(context.resolveDynamicValuesInMap(systemProperties));
         camelJBang().workingDir(Path.of(_workDir));
 
-        ProcessAndOutput pao = camelJBang().custom(command,
-                _workDir,
-                subNames,
-                resourceFiles,
-                context.resolveDynamicValuesInList(args).toArray(String[]::new));
-
         var _processName = processName == null ? commands[0] : processName;
-        verifyProcessIsAlive(pao, _processName);
+        Long pid;
+        ProcessAndOutput pao;
+        if(reuseProcess instanceof ProcessAndOutput) {
+            pao = (ProcessAndOutput) reuseProcess;
+            pid = pao.getProcessId();
+        } else {
+            pao = camelJBang().custom(command,
+                    _workDir,
+                    subNames,
+                    resourceFiles,
+                    context.resolveDynamicValuesInList(args).toArray(String[]::new));
 
-        Long pid = pao.getProcessId();
+            verifyProcessIsAlive(pao, _processName);
 
+            pid = pao.getProcessId();
+            context.setVariable("%s:process:%d".formatted(_processName, pid), pao);
+        }
         context.setVariable("%s:pid".formatted(_processName), pid);
         context.setVariable("%s:process:%d".formatted(_processName, pid), pao);
+
 
         logger.info("Started Camel integration '%s' (%s)".formatted(_processName, pid));
 
@@ -143,7 +154,8 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
 
         logger.info("Waiting for the Camel integration '%s' (%s) to be running ...".formatted(_processName, pid));
 
-        if (waitForRunningState) {
+        //there is no need to wait for the start, if PID is reused
+        if (waitForRunningState && reuseProcess == null) {
             new CamelVerifyIntegrationAction.Builder()
                     .integrationName(_processName)
                     .isRunning()
@@ -179,6 +191,7 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         private final Map<String, String> systemProperties = new HashMap<>();
         private Resource systemPropertiesFile;
 
+        private Object reuseProcess;
         private boolean autoRemoveResources = CamelJBangSettings.isAutoRemoveResources();
         private boolean waitForRunningState = CamelJBangSettings.isWaitForRunningState();
         private boolean dumpIntegrationOutput = CamelJBangSettings.isDumpIntegrationOutput();
@@ -278,6 +291,12 @@ public class CamelCustomIntegrationAction extends AbstractCamelJBangAction {
         @Override
         public Builder withSystemProperties(Resource systemPropertiesFile) {
             this.systemPropertiesFile = systemPropertiesFile;
+            return this;
+        }
+
+        @Override
+        public Builder reuseProcess(Object reuseProcess) {
+            this.reuseProcess = reuseProcess;
             return this;
         }
 

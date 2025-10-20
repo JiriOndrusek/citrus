@@ -105,6 +105,12 @@ public interface CamelIntegrationCustomActionBuilder<T extends TestAction, B ext
      */
     B withSystemProperties(Resource systemPropertiesFile);
 
+    /**
+     * If true and there is running integration with a processName, no new integration is started.
+     * (PID of running integration is set into context)
+     */
+    B reuseProcess(Object reuseProcess);
+
     B dumpIntegrationOutput(boolean enabled);
 
     B autoRemove(boolean enabled);
